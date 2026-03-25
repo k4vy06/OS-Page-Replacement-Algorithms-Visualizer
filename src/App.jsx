@@ -25,7 +25,6 @@ import {
   Cell,
   LineChart,
   Line,
-  Legend
 } from 'recharts';
 import { fifo, lru, optimal } from './utils/algorithms';
 
@@ -40,12 +39,22 @@ const App = () => {
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [comparisonData, setComparisonData] = useState([]);
+  const [debouncedRefString, setDebouncedRefString] = useState(refStringInput);
   
   const timerRef = useRef(null);
 
+  // Debounce reference string input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedRefString(refStringInput);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [refStringInput]);
+
+  // Live update simulation when config changes
   useEffect(() => {
     runComparison();
-  }, []);
+  }, [debouncedRefString, frameCount, algorithm]);
 
   useEffect(() => {
     if (darkMode) {
@@ -56,7 +65,7 @@ const App = () => {
   }, [darkMode]);
 
   const runComparison = () => {
-    const refs = refStringInput.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    const refs = debouncedRefString.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
     if (refs.length === 0) return;
 
     const resFifo = fifo(refs, frameCount);
@@ -74,10 +83,6 @@ const App = () => {
     setSimulationData(currentRes);
     setCurrentStep(-1);
     setIsPlaying(false);
-  };
-
-  const handleRun = () => {
-    runComparison();
   };
 
   const handleRandom = () => {
@@ -157,14 +162,14 @@ const App = () => {
                 <h2 className="text-xl font-semibold">Configuration</h2>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Reference String</label>
                   <input 
                     type="text" 
                     value={refStringInput}
                     onChange={(e) => setRefStringInput(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 ring-emerald-500 outline-none transition-all"
                     placeholder="e.g. 7,0,1,2,0,3,0,4"
                   />
                   <div className="flex justify-between">
@@ -176,20 +181,23 @@ const App = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Memory Frames</label>
-                    <input 
-                      type="number" 
-                      min="1" max="8"
-                      value={frameCount}
-                      onChange={(e) => setFrameCount(parseInt(e.target.value) || 1)}
-                      className="w-full px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500 outline-none transition-all"
-                    />
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="range" 
+                        min="1" max="8"
+                        value={frameCount}
+                        onChange={(e) => setFrameCount(parseInt(e.target.value) || 1)}
+                        className="flex-1 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                      />
+                      <span className="w-8 text-center font-bold text-emerald-500">{frameCount}</span>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Algorithm</label>
                     <select 
                       value={algorithm}
                       onChange={(e) => setAlgorithm(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500 outline-none transition-all"
+                      className="w-full px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500 outline-none transition-all cursor-pointer"
                     >
                       <option value="FIFO">FIFO</option>
                       <option value="LRU">LRU</option>
@@ -198,12 +206,12 @@ const App = () => {
                   </div>
                 </div>
 
-                <button 
-                  onClick={handleRun}
-                  className="w-full mt-4 bg-gradient-to-r from-blue-600 to-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
-                >
-                  Update Simulation
-                </button>
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    Live Simulation Active
+                  </div>
+                </div>
               </div>
             </section>
 
